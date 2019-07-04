@@ -18,12 +18,14 @@ public class QuickListAction extends QuickSwitchSchemeAction implements DumbAwar
             return;
         }
 
-        addAction("com.developerphil.adbidea.action.UninstallAction", group);
-        addAction("com.developerphil.adbidea.action.KillAction", group);
         addAction("com.developerphil.adbidea.action.StartAction", group);
         addAction("com.developerphil.adbidea.action.RestartAction", group);
+        addAction("com.developerphil.adbidea.action.KillAction", group);
+        addAction("com.developerphil.adbidea.action.UninstallAction", group);
+        group.addSeparator();
         addAction("com.developerphil.adbidea.action.ClearDataAction", group);
         addAction("com.developerphil.adbidea.action.ClearDataAndRestartAction", group);
+        group.addSeparator();
         addAction("com.developerphil.adbidea.action.RevokePermissionsAction", group);
 
         if (isDebuggingAvailable()) {
