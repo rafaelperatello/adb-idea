@@ -197,6 +197,11 @@
                     text="ADB Restart App With Debugger"
                     description="Restarts the current application and attach the debugger">
             </action>
+            <action id="com.developerphil.adbidea.action.CopyDatabaseAction"
+                    class="com.developerphil.adbidea.action.CopyDatabaseAction"
+                    text="ADB Copy Database"
+                    description="Pull app database folder">
+            </action>
             <add-to-group group-id="AndroidToolsGroup" anchor="first"/>
         </group>
     </actions>

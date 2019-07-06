@@ -61,6 +61,10 @@ public class AdbFacade {
         executeOnDevice(project, new ClearDataAndRestartCommand());
     }
 
+    public static void copyDatabase(Project project) {
+        executeOnDevice(project, new CopyDatabaseCommand());
+    }
+
     private static void executeOnDevice(final Project project, final Command runnable) {
 
         if (isGradleSyncInProgress(project)) {
