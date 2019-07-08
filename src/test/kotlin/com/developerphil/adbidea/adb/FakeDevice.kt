@@ -240,4 +240,20 @@ data class FakeDevice(private val serialNumber: String) : IDevice {
     override fun getPropertyCount(): Int {
         throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
+
+    override fun installRemotePackage(p0: String?, p1: Boolean, p2: InstallReceiver?, vararg p3: String?) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun installRemotePackage(p0: String?, p1: Boolean, p2: InstallReceiver?, p3: Long, p4: Long, p5: TimeUnit?, vararg p6: String?) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun installPackage(p0: String?, p1: Boolean, p2: InstallReceiver?, vararg p3: String?) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun installPackage(p0: String?, p1: Boolean, p2: InstallReceiver?, p3: Long, p4: Long, p5: TimeUnit?, vararg p6: String?) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
 }
