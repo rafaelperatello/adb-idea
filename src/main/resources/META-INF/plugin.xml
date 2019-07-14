@@ -7,13 +7,14 @@
     <description><![CDATA[
         Adds the following ADB commands to Android Studio and Intellij:<br />
         <ul>
-            <li>ADB Uninstall App</li>
-            <li>ADB Kill App</li>
-            <li>ADB Start App</li>
             <li>ADB Restart App</li>
+            <li>ADB Start App</li>
+            <li>ADB Kill App</li>
+            <li>ADB Uninstall App</li>
             <li>ADB Clear App Data</li>
             <li>ADB Clear App Data and Restart</li>
             <li>ADB Revoke Permissions</li>
+            <li>ADB Copy Database</li>
             <li>ADB Start App With Debugger</li>
             <li>ADB Restart App With Debugger</li>
         </ul>
