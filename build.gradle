@@ -45,7 +45,7 @@ if (!hasProperty('StudioCompilePath')) {
 }
 
 intellij {
-    pluginName 'adb_idea'
+    pluginName 'adb_idea_custom'
     updateSinceUntilBuild false
 
     intellij.localPath = project.hasProperty("StudioRunPath") ? StudioRunPath : StudioCompilePath

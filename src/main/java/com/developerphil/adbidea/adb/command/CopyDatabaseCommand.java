@@ -32,7 +32,15 @@ public class CopyDatabaseCommand implements Command, SyncService.ISyncProgressMo
     public boolean run(Project project, IDevice device, AndroidFacet facet, String packageName) {
         try {
             if (isAppInstalled(device, packageName)) {
-                device.executeShellCommand("run-as " + packageName + " cp -R databases /sdcard/", new GenericReceiver(), 15L, TimeUnit.SECONDS);
+                device.executeShellCommand("rm -r /sdcard/databases", new GenericReceiver(), 15L, TimeUnit.SECONDS);
+
+                GenericReceiver copyReceiver = new GenericReceiver();
+                device.executeShellCommand("run-as " + packageName + " cp -R databases /sdcard/", copyReceiver, 15L, TimeUnit.SECONDS);
+                if ((copyReceiver.getAdbOutputLines().size() > 0) && (copyReceiver.getAdbOutputLines().get(0).contains("No such file"))) {
+                    NotificationHelper.error("No database found");
+                    return true;
+                }
+
                 info(String.format("<b>%s</b> database copied to sdcard", packageName));
 
                 String selectedDestination = getDestination(project);
