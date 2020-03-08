@@ -28,24 +28,30 @@ class CopyDatabaseCommand : Command, ISyncProgressMonitor, FileChooserConsumer {
         try {
             if (isAppInstalled(device, packageName)) {
                 device.executeShellCommand("rm -r /sdcard/databases", GenericReceiver(), 15L, TimeUnit.SECONDS)
+
                 val copyReceiver = GenericReceiver()
                 device.executeShellCommand("run-as $packageName cp -R databases /sdcard/", copyReceiver, 15L, TimeUnit.SECONDS)
                 if (copyReceiver.adbOutputLines.size > 0 && copyReceiver.adbOutputLines[0].contains("No such file")) {
                     error("No database found")
                     return true
                 }
+
                 info(String.format("<b>%s</b> database copied to sdcard", packageName))
+
                 val selectedDestination = getDestination(project) ?: return true
                 val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
                 val stamp = format.format(Date())
                 val destination = "$selectedDestination/$stamp"
                 val result = File(destination).mkdir()
                 val entry = arrayOf(getEntry("sdcard/databases", device))
+
                 device.syncService.pull(entry, destination, this)
+
                 val flag = pullLatch.await(10, TimeUnit.SECONDS)
                 if (!flag) {
                     throw RuntimeException("Failed to download database")
                 }
+
                 info("Database copied to: $destination")
                 return true
             } else {
