@@ -16,20 +16,27 @@ class QuickListAction : QuickSwitchSchemeAction(), DumbAware {
             return
         }
 
-        addAction("com.developerphil.adbidea.action.UninstallAction", group)
-        addAction("com.developerphil.adbidea.action.KillAction", group)
-        addAction("com.developerphil.adbidea.action.StartAction", group)
-        addAction("com.developerphil.adbidea.action.RestartAction", group)
-        addAction("com.developerphil.adbidea.action.ClearDataAction", group)
-        addAction("com.developerphil.adbidea.action.ClearDataAndRestartAction", group)
-        addAction("com.developerphil.adbidea.action.RevokePermissionsAction", group)
-        if (AdbUtil.isDebuggingAvailable) {
-            group.addSeparator()
-            addAction("com.developerphil.adbidea.action.StartWithDebuggerAction", group)
-            addAction("com.developerphil.adbidea.action.RestartWithDebuggerAction", group)
-        }
-    }
+        addAction("com.developerphil.adbidea.action.RestartAction", group);
+        addAction("com.developerphil.adbidea.action.StartAction", group);
+        addAction("com.developerphil.adbidea.action.KillAction", group);
+        addAction("com.developerphil.adbidea.action.UninstallAction", group);
+        group.addSeparator();
+        addAction("com.developerphil.adbidea.action.ClearDataAction", group);
+        addAction("com.developerphil.adbidea.action.ClearDataAndRestartAction", group);
+        group.addSeparator();
+        addAction("com.developerphil.adbidea.action.RevokePermissionsAction", group);
+        group.addSeparator();
+        addAction("com.developerphil.adbidea.action.CopyDatabaseAction", group);
+        group.addSeparator();
 
+        if (AdbUtil.isDebuggingAvailable) {
+            group.addSeparator();
+
+            addAction("com.developerphil.adbidea.action.StartWithDebuggerAction", group);
+            addAction("com.developerphil.adbidea.action.RestartWithDebuggerAction", group);
+        }
+
+    }
 
     private fun addAction(actionId: String, toGroup: DefaultActionGroup) {
         // add action to group if it is available
