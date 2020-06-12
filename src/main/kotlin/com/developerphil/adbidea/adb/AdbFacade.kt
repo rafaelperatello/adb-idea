@@ -24,6 +24,7 @@ object AdbFacade {
     fun clearData(project: Project) = executeOnDevice(project, ClearDataCommand())
     fun clearDataAndRestart(project: Project) = executeOnDevice(project, ClearDataAndRestartCommand())
     fun copyDatabase(project: Project) = executeOnDevice(project, CopyDatabaseCommand())
+    fun deleteDatabase(project: Project) = executeOnDevice(project, DeleteDatabaseCommand())
     fun clearDataAndRestartWithDebugger(project: Project) = executeOnDevice(project, ClearDataAndRestartWithDebuggerCommand())
     fun enableWifi(project: Project) = executeOnDevice(project, ToggleSvcCommand(WIFI, true))
     fun disableWifi(project: Project) = executeOnDevice(project, ToggleSvcCommand(WIFI, false))

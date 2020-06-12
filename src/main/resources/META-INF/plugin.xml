@@ -215,9 +215,13 @@
             <action id="com.developerphil.adbidea.action.CopyDatabaseAction"
                     class="com.developerphil.adbidea.action.CopyDatabaseAction"
                     text="ADB Copy Database"
-                    description="Pull app database folder">
+                    description="Copy all databases from the selected app">
             </action>
-
+            <action id="com.developerphil.adbidea.action.DeleteDatabaseAction"
+                    class="com.developerphil.adbidea.action.DeleteDatabaseAction"
+                    text="ADB Delete Selected Databases"
+                    description="Delete selected databases from the app">
+            </action>
             <action id="com.developerphil.adbidea.action.ClearDataAndRestartWithDebuggerAction"
                     class="com.developerphil.adbidea.action.ClearDataAndRestartWithDebuggerAction"
                     text="ADB Clear App Data and Restart App With Debugger"

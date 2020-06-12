@@ -31,7 +31,7 @@ class CopyDatabaseCommand : Command, ISyncProgressMonitor, FileChooserConsumer {
 
                 val copyReceiver = GenericReceiver()
                 device.executeShellCommand("run-as $packageName cp -R databases /sdcard/", copyReceiver, 15L, TimeUnit.SECONDS)
-                if (copyReceiver.adbOutputLines.size > 0 && copyReceiver.adbOutputLines[0].contains("No such file")) {
+                if (copyReceiver.adbOutputLines.size > 0 && copyReceiver.adbOutputLines[0].contains("No such file", true)) {
                     error("No database found")
                     return true
                 }

@@ -27,6 +27,7 @@ class QuickListAction : QuickSwitchSchemeAction(), DumbAware {
         addAction("com.developerphil.adbidea.action.RevokePermissionsAction", group);
         group.addSeparator();
         addAction("com.developerphil.adbidea.action.CopyDatabaseAction", group);
+        addAction("com.developerphil.adbidea.action.DeleteDatabaseAction", group);
         group.addSeparator();
 
         if (AdbUtil.isDebuggingAvailable) {
