@@ -6,14 +6,20 @@ import org.jetbrains.android.facet.AndroidFacet
 import javax.swing.JComponent
 import javax.swing.JPanel
 
-class DatabaseFileChooserDialog(facet: AndroidFacet, databaseList: List<String>) : DialogWrapper(facet.module.project, true) {
+class DatabaseFileChooserDialog(
+        facet: AndroidFacet,
+        databaseList: List<String>
+) : DialogWrapper(facet.module.project, true) {
 
+    // Form binding views
     lateinit var myPanel: JPanel
     lateinit var myDatabaseChooserWrapper: JPanel
-    private val myDatabaseChooser: DatabaseChooserPanel
+
+    // Panel
+    private val myDatabaseChooserPanel: DatabaseChooserPanel
 
     val selectedDatabase: String?
-        get() = myDatabaseChooser.selectedDatabaseName
+        get() = myDatabaseChooserPanel.selectedDatabaseName
 
     init {
         title = "Select the database"
@@ -22,19 +28,19 @@ class DatabaseFileChooserDialog(facet: AndroidFacet, databaseList: List<String>)
         okAction.isEnabled = false
 
         // Setup list
-        myDatabaseChooser = DatabaseChooserPanel(okAction)
-        myDatabaseChooser.addListener(object : DatabaseChooserListener {
+        myDatabaseChooserPanel = DatabaseChooserPanel(okAction)
+        myDatabaseChooserPanel.addListener(object : DatabaseChooserListener {
             override fun selectedDatabaseChanged() {
                 updateOkButton()
             }
         })
 
         // Register disposer
-        Disposer.register(myDisposable, myDatabaseChooser)
+        Disposer.register(myDisposable, myDatabaseChooserPanel)
 
         // Init list
-        myDatabaseChooserWrapper.add(myDatabaseChooser.panel)
-        myDatabaseChooser.init(databaseList)
+        myDatabaseChooserWrapper.add(myDatabaseChooserPanel.panel)
+        myDatabaseChooserPanel.init(databaseList)
 
         // Update status
         init()
