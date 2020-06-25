@@ -29,11 +29,24 @@ class DeleteDatabaseCommand : Command, ISyncProgressMonitor, FileChooserConsumer
                     return true
                 }
 
+                // Filter result
+                val filteredResult = listReceiver.adbOutputLines
+                        .flatMap { it.split(" ") }
+                        .flatMap { it.split("\n") }
+                        .filter { it.isNotBlank() }
+                        .sorted()
+
+                // Check set
+                if (filteredResult.isEmpty()) {
+                    error("No databases found")
+                    return true
+                }
+
                 // Info
                 info(String.format("Databases: <b>%s</b> ", listReceiver.adbOutputLines.toString()))
 
                 // Select database to delete
-                val selectedDatabase = getDatabaseName(project, facet, listReceiver.adbOutputLines) ?: return false
+                val selectedDatabase = getDatabaseName(project, facet, filteredResult) ?: return false
                 info(String.format("Database to remove: <b>%s</b> ", selectedDatabase))
 
                 // Delete
