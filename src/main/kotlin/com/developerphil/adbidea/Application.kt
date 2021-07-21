@@ -19,11 +19,11 @@ class Application : ApplicationComponent {
     private val applicationPreferences = ApplicationPreferences(applicationPreferencesAccessor)
 
     override fun initComponent() {
-        try {
-            val version = PluginManager.getPlugin(PluginId.getId(pluginPackage))!!.version!!
-            applicationPreferences.savePreviousPluginVersion(SemVer.parseFromText(version)!!)
-        } catch (e: Exception) {
-            NotificationHelper.error("Couldn't initialize ADB Idea: ${e.message}")
-        }
+//        try {
+//            val version = PluginManager.getPlugin(PluginId.getId(pluginPackage))!!.version!!
+//            applicationPreferences.savePreviousPluginVersion(SemVer.parseFromText(version)!!)
+//        } catch (e: Exception) {
+//            NotificationHelper.error("Couldn't initialize ADB Idea: ${e.message}")
+//        }
     }
 }
