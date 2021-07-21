@@ -16,22 +16,9 @@ data class FakeDevice(private val serialNumber: String) : IDevice {
     // ---------------
     // NOT IMPLEMENTED
     // ---------------
-//
-//    override fun installRemotePackage(p0: String?, p1: Boolean, p2: InstallReceiver?, vararg p3: String?) {
-//        throw UnsupportedOperationException("not implemented")
-//    }
-//
-//    override fun installRemotePackage(p0: String?, p1: Boolean, p2: InstallReceiver?, p3: Long, p4: Long, p5: TimeUnit?, vararg p6: String?) {
-//        throw UnsupportedOperationException("not implemented")
-//    }
-//
-//    override fun installPackage(p0: String?, p1: Boolean, p2: InstallReceiver?, vararg p3: String?) {
-//        throw UnsupportedOperationException("not implemented")
-//    }
-//
-//    override fun installPackage(p0: String?, p1: Boolean, p2: InstallReceiver?, p3: Long, p4: Long, p5: TimeUnit?, vararg p6: String?) {
-//        throw UnsupportedOperationException("not implemented")
-//    }
+    override fun getAvdPath(): String {
+        throw UnsupportedOperationException("not implemented")
+    }
 
     override fun executeShellCommand(p0: String?, p1: IShellOutputReceiver?, p2: Long, p3: Long, p4: TimeUnit?) {
         throw UnsupportedOperationException("not implemented")
