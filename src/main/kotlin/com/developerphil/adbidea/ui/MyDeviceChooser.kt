@@ -18,7 +18,6 @@ package com.developerphil.adbidea.ui
 import com.android.ddmlib.AndroidDebugBridge
 import com.android.ddmlib.IDevice
 import com.android.ddmlib.IDevice.HardwareFeature
-import com.android.sdklib.IAndroidTarget
 import com.android.tools.idea.run.ConnectedAndroidDevice
 import com.android.tools.idea.run.LaunchCompatibility
 import com.android.tools.idea.run.LaunchCompatibilityCheckerImpl
@@ -33,7 +32,6 @@ import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.table.JBTable
 import com.intellij.util.Alarm
-import com.intellij.util.ThreeState
 import com.intellij.util.containers.ContainerUtil
 import gnu.trove.TIntArrayList
 import org.jetbrains.android.dom.manifest.UsesFeature
@@ -56,17 +54,22 @@ import javax.swing.table.AbstractTableModel
  *
  * https://android.googlesource.com/platform/tools/adt/idea/+/refs/heads/mirror-goog-studio-master-dev/android/src/com/android/tools/idea/run/DeviceChooser.java
  */
-class MyDeviceChooser(multipleSelection: Boolean,
-                      okAction: Action,
-                      private val myFacet: AndroidFacet,
-                      private val myFilter: Condition<IDevice>?) : Disposable {
+class MyDeviceChooser(
+    multipleSelection: Boolean,
+    okAction: Action,
+    private val myFacet: AndroidFacet,
+    private val myFilter: Condition<IDevice>?
+) : Disposable {
     private val myListeners = ContainerUtil.createLockFreeCopyOnWriteList<DeviceChooserListener>()
     private val myRefreshingAlarm: Alarm
     private val myBridge: AndroidDebugBridge?
+
     @Volatile
     private var myProcessSelectionFlag = true
+
     /** The current list of devices that is displayed in the table.  */
     private var myDisplayedDevices = EMPTY_DEVICE_ARRAY
+
     /**
      * The current list of devices obtained from the debug bridge. This is updated in a background thread.
      * If it is different than [.myDisplayedDevices], then a [.refreshTable] invocation in the EDT thread
@@ -74,7 +77,7 @@ class MyDeviceChooser(multipleSelection: Boolean,
      */
     private val myDetectedDevicesRef = AtomicReference(EMPTY_DEVICE_ARRAY)
     private val myPanel: JComponent
-    private val myDeviceTable: JBTable
+    private val myDeviceTable: JBTable = JBTable()
     private var mySelectedRows: IntArray? = null
     private var hadUserInteraction = false
     private var previouslySelectedSerials: Array<String>? = null
@@ -161,7 +164,8 @@ class MyDeviceChooser(multipleSelection: Boolean,
         }
         if (!Arrays.equals(myDisplayedDevices, devices)) {
             myDetectedDevicesRef.set(devices)
-            ApplicationManager.getApplication().invokeLater({ refreshTable() }, ModalityState.stateForComponent(myDeviceTable))
+            ApplicationManager.getApplication()
+                .invokeLater({ refreshTable() }, ModalityState.stateForComponent(myDeviceTable))
         }
     }
 
@@ -197,7 +201,7 @@ class MyDeviceChooser(multipleSelection: Boolean,
     val preferredFocusComponent: JComponent
         get() = myDeviceTable
 
-    val panel: JComponent?
+    val panel: JComponent
         get() = myPanel
 
     val selectedDevices: Array<IDevice>
@@ -227,8 +231,9 @@ class MyDeviceChooser(multipleSelection: Boolean,
                 filteredDevices.add(device)
             }
         }
-        // Do not filter launching cloud devices as they are just unselectable progress markers
-// that are replaced with the actual cloud devices as soon as they are up and the actual cloud devices will be filtered above.
+
+        // Do not filter launching cloud devices as they are just un-selectable progress markers that are replaced
+        // with the actual cloud devices as soon as they are up and the actual cloud devices will be filtered above.
         return filteredDevices.toTypedArray()
     }
 
@@ -269,69 +274,78 @@ class MyDeviceChooser(multipleSelection: Boolean,
                 return null
             }
             val device = myDevices[rowIndex]
-            when (columnIndex) {
-                DEVICE_NAME_COLUMN_INDEX -> return generateDeviceName(device)
-                SERIAL_COLUMN_INDEX -> return device.serialNumber
-                DEVICE_STATE_COLUMN_INDEX -> return getDeviceState(device)
-                COMPATIBILITY_COLUMN_INDEX -> return LaunchCompatibilityCheckerImpl.create(myFacet, null, null)?.validate(ConnectedAndroidDevice(device, null))
+            return when (columnIndex) {
+                DEVICE_NAME_COLUMN_INDEX -> generateDeviceName(device)
+                SERIAL_COLUMN_INDEX -> device.serialNumber
+                DEVICE_STATE_COLUMN_INDEX -> getDeviceState(device)
+                COMPATIBILITY_COLUMN_INDEX ->
+                    LaunchCompatibilityCheckerImpl.create(myFacet, null, null)
+                        ?.validate(ConnectedAndroidDevice(device, null))
+                else -> null
             }
-            return null
         }
 
         private fun generateDeviceName(device: IDevice): String {
             return device.name
-                    .replace(device.serialNumber, "")
-                    .replace("[-_]".toRegex(), " ")
-                    .replace("[\\[\\]]".toRegex(), "")
+                .replace(device.serialNumber, "")
+                .replace("[-_]".toRegex(), " ")
+                .replace("[\\[\\]]".toRegex(), "")
         }
 
         override fun getColumnClass(columnIndex: Int): Class<*> {
-            return if (columnIndex == COMPATIBILITY_COLUMN_INDEX) {
-                LaunchCompatibility::class.java
-            } else if (columnIndex == DEVICE_NAME_COLUMN_INDEX) {
-                IDevice::class.java
-            } else {
-                String::class.java
+            return when (columnIndex) {
+                COMPATIBILITY_COLUMN_INDEX -> LaunchCompatibility::class.java
+                DEVICE_NAME_COLUMN_INDEX -> IDevice::class.java
+                else -> String::class.java
             }
         }
-
     }
 
     private class LaunchCompatibilityRenderer : ColoredTableCellRenderer() {
-        override fun customizeCellRenderer(table: JTable, value: Any?, selected: Boolean, hasFocus: Boolean, row: Int, column: Int) {
-            if (value !is LaunchCompatibility) {
-                return
-            }
-            val compatibility = value
-            val compatible = compatibility.isCompatible
-            if (compatible == ThreeState.YES) {
+        override fun customizeCellRenderer(
+            table: JTable,
+            value: Any?,
+            selected: Boolean,
+            hasFocus: Boolean,
+            row: Int,
+            column: Int
+        ) {
+            val compatibility = value as? LaunchCompatibility ?: return
+            val state = compatibility.state
+            if (state == LaunchCompatibility.State.OK) {
                 append("Yes")
             } else {
-                if (compatible == ThreeState.NO) {
+                if (state == LaunchCompatibility.State.ERROR) {
                     append("No", SimpleTextAttributes.ERROR_ATTRIBUTES)
                 } else {
                     append("Maybe")
                 }
-                val reason = compatibility.reason
-                if (reason != null) {
-                    append(", ")
-                    append(reason)
-                }
+
+                compatibility.reason
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let {
+                        append(", ")
+                        append(it)
+                    }
             }
         }
     }
 
     companion object {
         private val COLUMN_TITLES = arrayOf("Device", "Serial Number", "State", "Compatible")
+
         private const val DEVICE_NAME_COLUMN_INDEX = 0
         private const val SERIAL_COLUMN_INDEX = 1
         private const val DEVICE_STATE_COLUMN_INDEX = 2
         private const val COMPATIBILITY_COLUMN_INDEX = 3
         private const val REFRESH_INTERVAL_MS = 500
+
         val EMPTY_DEVICE_ARRAY = arrayOf<IDevice>()
-        private fun getRequiredHardwareFeatures(requiredFeatures: List<UsesFeature>): EnumSet<HardwareFeature> { // Currently, this method is hardcoded to only search if the list of required features includes a watch.
-// We may not want to search the device for every possible feature, but only a small subset of important
-// features, starting with hardware type watch..
+
+        // Currently, this method is hardcoded to only search if the list of required features includes a watch.
+        // We may not want to search the device for every possible feature, but only a small subset of important
+        // features, starting with hardware type watch.
+        private fun getRequiredHardwareFeatures(requiredFeatures: List<UsesFeature>): EnumSet<HardwareFeature> {
             for (feature in requiredFeatures) {
                 val name = feature.name
                 if (name != null && UsesFeature.HARDWARE_TYPE_WATCH == name.stringValue) {
@@ -348,11 +362,12 @@ class MyDeviceChooser(multipleSelection: Boolean,
     }
 
     init {
-        myDeviceTable = JBTable()
         myPanel = ScrollPaneFactory.createScrollPane(myDeviceTable)
         myPanel.preferredSize = Dimension(450, 220)
         myDeviceTable.model = MyDeviceTableModel(EMPTY_DEVICE_ARRAY)
-        myDeviceTable.setSelectionMode(if (multipleSelection) ListSelectionModel.MULTIPLE_INTERVAL_SELECTION else ListSelectionModel.SINGLE_SELECTION)
+        myDeviceTable.setSelectionMode(
+            if (multipleSelection) ListSelectionModel.MULTIPLE_INTERVAL_SELECTION else ListSelectionModel.SINGLE_SELECTION
+        )
         myDeviceTable.selectionModel.addListSelectionListener {
             if (myProcessSelectionFlag) {
                 hadUserInteraction = true

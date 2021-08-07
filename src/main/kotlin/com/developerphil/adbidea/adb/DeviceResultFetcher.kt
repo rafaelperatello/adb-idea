@@ -11,48 +11,67 @@ import org.jetbrains.android.facet.AndroidFacet
 import org.jetbrains.android.util.AndroidUtils
 
 
-class DeviceResultFetcher constructor(private val project: Project, private val useSameDevicesHelper: UseSameDevicesHelper, private val bridge: Bridge) {
+class DeviceResultFetcher constructor(
+    private val project: Project,
+    private val useSameDevicesHelper: UseSameDevicesHelper,
+    private val bridge: Bridge
+) {
 
     fun fetch(): DeviceResult? {
-        val facets = AndroidUtils.getApplicationFacets(project)
-        if (facets.isNotEmpty()) {
-            val facet = getFacet(facets) ?: return null
-            val packageName = AndroidModuleModel.get(facet)?.applicationId ?: return null
+        val facet = getFacet(AndroidUtils.getApplicationFacets(project))
 
-            if (!bridge.isReady()) {
-                NotificationHelper.error("No platform configured")
-                return null
+        if (facet == null) {
+            NotificationHelper.error("No facet found")
+            return null
+        }
+
+        val model = AndroidModuleModel.get(facet)
+        if (model == null) {
+            NotificationHelper.error("No model found")
+            return null
+        }
+
+        val packageName: String? =
+            model.androidProject.defaultConfig.productFlavor.applicationId
+
+        if (packageName.isNullOrEmpty()) {
+            NotificationHelper.error("No package found")
+            return null
+        }
+
+        if (!bridge.isReady()) {
+            NotificationHelper.error("No platform configured")
+            return null
+        }
+
+        val rememberedDevices = useSameDevicesHelper.getRememberedDevices()
+        if (rememberedDevices.isNotEmpty()) {
+            return DeviceResult(rememberedDevices, facet, packageName)
+        }
+
+        val devices = bridge.connectedDevices()
+        return when {
+            devices.size == 1 -> {
+                DeviceResult(devices, facet, packageName)
             }
-
-            val rememberedDevices = useSameDevicesHelper.getRememberedDevices()
-            if (rememberedDevices.isNotEmpty()) {
-                return DeviceResult(rememberedDevices, facet, packageName)
+            devices.size > 1 -> {
+                showDeviceChooserDialog(facet, packageName)
             }
-
-            val devices = bridge.connectedDevices()
-            if (devices.size == 1) {
-                return DeviceResult(devices, facet, packageName)
-            } else if (devices.size > 1) {
-                return showDeviceChooserDialog(facet, packageName)
-            } else {
-                return null
+            else -> {
+                null
             }
         }
-        return null
     }
 
     private fun getFacet(facets: List<AndroidFacet>): AndroidFacet? {
-        val facet: AndroidFacet?
-        if (facets.size > 1) {
-            facet = ModuleChooserDialogHelper.showDialogForFacets(project, facets)
-            if (facet == null) {
-                return null
-            }
-        } else {
-            facet = facets[0]
+        if (facets.isEmpty()) {
+            return null
         }
-
-        return facet
+        return if (facets.size > 1) {
+            ModuleChooserDialogHelper.showDialogForFacets(project, facets)
+        } else {
+            facets[0]
+        }
     }
 
     private fun showDeviceChooserDialog(facet: AndroidFacet, packageName: String): DeviceResult? {
@@ -79,4 +98,8 @@ class DeviceResultFetcher constructor(private val project: Project, private val 
 }
 
 
-data class DeviceResult(val devices: List<IDevice>, val facet: AndroidFacet, val packageName: String)
+data class DeviceResult(
+    val devices: List<IDevice>,
+    val facet: AndroidFacet,
+    val packageName: String
+)
