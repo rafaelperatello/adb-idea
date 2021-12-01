@@ -12,11 +12,11 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 if (!hasProperty('StudioCompilePath')) {
-    throw new Exception("No StudioCompilePath value was set, please create gradle.properties file")
+    throw new GradleException("No StudioCompilePath value was set, please create gradle.properties file")
 }
 
 intellij {
-    pluginName 'adb_idea_custom'
+    pluginName = 'adb_idea_custom'
     updateSinceUntilBuild = false
     localPath = project.hasProperty("StudioRunPath") ? StudioRunPath : StudioCompilePath
     instrumentCode {
@@ -52,10 +52,11 @@ task(verifySetup) {
     doLast {
         def ideaJar = "$StudioCompilePath/lib/idea.jar"
         if (!file(ideaJar).exists()) {
-            throw new Exception("$ideaJar not found, set StudioCompilePath in gradle.properties")
+            throw new GradleException("$ideaJar not found, set StudioCompilePath in gradle.properties")
         }
     }
 }
+
 
 compileJava.dependsOn verifySetup
 buildSearchableOptions.enabled = false
