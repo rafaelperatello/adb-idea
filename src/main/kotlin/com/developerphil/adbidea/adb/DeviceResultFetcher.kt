@@ -31,8 +31,15 @@ class DeviceResultFetcher constructor(
             return null
         }
 
-        val packageName: String? =
+        val suffix: String? = (model.androidProject.buildTypes as ArrayList)
+            .find { it.buildType.name.equals("debug", true) }
+            ?.buildType?.applicationIdSuffix
+
+        val packageName: String? = if (suffix != null) {
+            model.androidProject.defaultConfig.productFlavor.applicationId + suffix
+        } else {
             model.androidProject.defaultConfig.productFlavor.applicationId
+        }
 
         if (packageName.isNullOrEmpty()) {
             NotificationHelper.error("No package found")
