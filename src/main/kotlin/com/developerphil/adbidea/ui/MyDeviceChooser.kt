@@ -58,10 +58,10 @@ import javax.swing.table.AbstractTableModel
  * https://android.googlesource.com/platform/tools/adt/idea/+/refs/heads/mirror-goog-studio-master-dev/android/src/com/android/tools/idea/run/DeviceChooser.java
  */
 class MyDeviceChooser(
-        multipleSelection: Boolean,
-        okAction: Action,
-        private val myFacet: AndroidFacet,
-        private val myFilter: Condition<IDevice>?
+    multipleSelection: Boolean,
+    okAction: Action,
+    private val myFacet: AndroidFacet,
+    private val myFilter: Condition<IDevice>?
 ) : Disposable {
     private val myListeners = ContainerUtil.createLockFreeCopyOnWriteList<DeviceChooserListener>()
     private val myRefreshingAlarm: Alarm
@@ -168,7 +168,7 @@ class MyDeviceChooser(
         if (!Arrays.equals(myDisplayedDevices, devices)) {
             myDetectedDevicesRef.set(devices)
             ApplicationManager.getApplication()
-                    .invokeLater({ refreshTable() }, ModalityState.stateForComponent(myDeviceTable))
+                .invokeLater({ refreshTable() }, ModalityState.stateForComponent(myDeviceTable))
         }
     }
 
@@ -281,16 +281,16 @@ class MyDeviceChooser(
                 SERIAL_COLUMN_INDEX -> return device.serialNumber
                 DEVICE_STATE_COLUMN_INDEX -> return getDeviceState(device)
                 COMPATIBILITY_COLUMN_INDEX -> return LaunchCompatibilityCheckerImpl.create(myFacet, null, null)!!
-                        .validate(ConnectedAndroidDeviceBuilder(device).get())
+                    .validate(ConnectedAndroidDeviceBuilder(device).get())
             }
             return null
         }
 
         private fun generateDeviceName(device: IDevice): String {
             return device.name
-                    .replace(device.serialNumber, "")
-                    .replace("[-_]".toRegex(), " ")
-                    .replace("[\\[\\]]".toRegex(), "")
+                .replace(device.serialNumber, "")
+                .replace("[-_]".toRegex(), " ")
+                .replace("[\\[\\]]".toRegex(), "")
         }
 
         override fun getColumnClass(columnIndex: Int): Class<*> {
@@ -307,12 +307,12 @@ class MyDeviceChooser(
 
     private class LaunchCompatibilityRenderer : ColoredTableCellRenderer() {
         override fun customizeCellRenderer(
-                table: JTable,
-                value: Any?,
-                selected: Boolean,
-                hasFocus: Boolean,
-                row: Int,
-                column: Int
+            table: JTable,
+            value: Any?,
+            selected: Boolean,
+            hasFocus: Boolean,
+            row: Int,
+            column: Int
         ) {
             try {
                 if (value !is LaunchCompatibility) {
@@ -412,11 +412,11 @@ class MyDeviceChooser(
 
 // To remove when IntelliJ merges Android Plugin 7.1
 class ConnectedAndroidDeviceBuilder(
-        private val device: IDevice,
+    private val device: IDevice,
 ) : BackwardCompatibleGetter<ConnectedAndroidDevice>() {
-    override fun getCurrentImplementation() = ConnectedAndroidDevice(device, emptyList())
+    override fun getCurrentImplementation() = ConnectedAndroidDevice(device)
 
     // On agp 7.0, there is a second nullable parameter in the constructor
     override fun getPreviousImplementation(): ConnectedAndroidDevice =
-            Reflect.onClass(ConnectedAndroidDevice::class.java).create(device, null).get()
+        Reflect.onClass(ConnectedAndroidDevice::class.java).create(device, null).get()
 }

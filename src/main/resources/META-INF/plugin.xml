@@ -1,7 +1,6 @@
 <idea-plugin url="https://github.com/pbreault/adb-idea">
     <id>br.com.rafaelperatello.adbidea</id>
     <name>ADB Idea Custom</name>
-    <version>2.6.4</version>
     <vendor url="https://github.com/rafaelperatello/adb-idea">Rafael Peratello</vendor>
 
     <description><![CDATA[
