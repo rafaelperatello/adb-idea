@@ -1,6 +1,7 @@
 package com.developerphil.adbidea.adb
 
 import com.developerphil.adbidea.ObjectGraph
+import com.developerphil.adbidea.adb.DeviceResult.SuccessfulDeviceResult
 import com.developerphil.adbidea.adb.command.*
 import com.developerphil.adbidea.adb.command.SvcCommand.MOBILE
 import com.developerphil.adbidea.adb.command.SvcCommand.WIFI
@@ -20,7 +21,9 @@ object AdbFacade {
     fun startDefaultActivity(project: Project) = executeOnDevice(project, StartDefaultActivityCommand(false))
     fun startDefaultActivityWithDebugger(project: Project) = executeOnDevice(project, StartDefaultActivityCommand(true))
     fun restartDefaultActivity(project: Project) = executeOnDevice(project, RestartPackageCommand())
-    fun restartDefaultActivityWithDebugger(project: Project) = executeOnDevice(project, CommandList(KillCommand(), StartDefaultActivityCommand(true)))
+    fun restartDefaultActivityWithDebugger(project: Project) =
+        executeOnDevice(project, CommandList(KillCommand(), StartDefaultActivityCommand(true)))
+
     fun clearData(project: Project) = executeOnDevice(project, ClearDataCommand())
     fun clearDataAndRestart(project: Project) = executeOnDevice(project, ClearDataAndRestartCommand())
     fun copyDatabase(project: Project) = executeOnDevice(project, CopyDatabaseCommand())
@@ -37,16 +40,14 @@ object AdbFacade {
             return
         }
 
-        val result = project.getComponent(ObjectGraph::class.java)
-                .deviceResultFetcher
-                .fetch()
-
-        if (result != null) {
-            for (device in result.devices) {
-                EXECUTOR.submit { runnable.run(project, device, result.facet, result.packageName) }
+        when (val result = project.getComponent(ObjectGraph::class.java).deviceResultFetcher.fetch()) {
+            is SuccessfulDeviceResult -> {
+                result.devices.forEach { device ->
+                    EXECUTOR.submit { runnable.run(project, device, result.facet, result.packageName) }
+                }
             }
-        } else {
-            NotificationHelper.error("No Device found")
+            is DeviceResult.Cancelled -> Unit
+            is DeviceResult.DeviceNotFound -> NotificationHelper.error("No device found")
         }
     }
 }

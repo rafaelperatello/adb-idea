@@ -2,6 +2,9 @@ package com.developerphil.adbidea.adb
 
 import com.android.ddmlib.IDevice
 import com.android.tools.idea.gradle.project.model.AndroidModuleModel
+import com.android.tools.idea.util.androidFacet
+import com.developerphil.adbidea.adb.DeviceResult.DeviceNotFound
+import com.developerphil.adbidea.adb.DeviceResult.SuccessfulDeviceResult
 import com.developerphil.adbidea.ui.DeviceChooserDialog
 import com.developerphil.adbidea.ui.ModuleChooserDialogHelper
 import com.developerphil.adbidea.ui.NotificationHelper
@@ -18,75 +21,55 @@ class DeviceResultFetcher constructor(
 ) {
 
     fun fetch(): DeviceResult? {
-        val facet = getFacet(AndroidUtils.getApplicationFacets(project))
+        val facets = AndroidUtils.getApplicationFacets(project)
+        if (facets.isNotEmpty()) {
+            val facet = getFacet(facets) ?: return null
+            val packageName = AndroidModuleModel.get(facet)?.applicationId ?: return null
 
-        if (facet == null) {
-            NotificationHelper.error("No facet found")
-            return null
-        }
-
-        val model = AndroidModuleModel.get(facet)
-        if (model == null) {
-            NotificationHelper.error("No model found")
-            return null
-        }
-
-        val suffix: String? = (model.androidProject.buildTypes as ArrayList)
-            .find { it.buildType.name.equals("debug", true) }
-            ?.buildType?.applicationIdSuffix
-
-        val packageName: String? = if (suffix != null) {
-            model.androidProject.defaultConfig.productFlavor.applicationId + suffix
-        } else {
-            model.androidProject.defaultConfig.productFlavor.applicationId
-        }
-
-        if (packageName.isNullOrEmpty()) {
-            NotificationHelper.error("No package found")
-            return null
-        }
-
-        if (!bridge.isReady()) {
-            NotificationHelper.error("No platform configured")
-            return null
-        }
-
-        val rememberedDevices = useSameDevicesHelper.getRememberedDevices()
-        if (rememberedDevices.isNotEmpty()) {
-            return DeviceResult(rememberedDevices, facet, packageName)
-        }
-
-        val devices = bridge.connectedDevices()
-        return when {
-            devices.size == 1 -> {
-                DeviceResult(devices, facet, packageName)
+            if (!bridge.isReady()) {
+                NotificationHelper.error("No platform configured")
+                return null
             }
-            devices.size > 1 -> {
+
+            val rememberedDevices = useSameDevicesHelper.getRememberedDevices()
+            if (rememberedDevices.isNotEmpty()) {
+                return SuccessfulDeviceResult(rememberedDevices, facet, packageName)
+            }
+
+            val devices = bridge.connectedDevices()
+            return if (devices.size == 1) {
+                SuccessfulDeviceResult(devices, facet, packageName)
+            } else if (devices.size > 1) {
                 showDeviceChooserDialog(facet, packageName)
-            }
-            else -> {
-                null
+            } else {
+                DeviceNotFound
             }
         }
+        return null
     }
 
-    private fun getFacet(facets: List<AndroidFacet>): AndroidFacet? {
-        if (facets.isEmpty()) {
-            return null
-        }
-        return if (facets.size > 1) {
-            ModuleChooserDialogHelper.showDialogForFacets(project, facets)
+
+    private fun getFacet(_facets: List<AndroidFacet>): AndroidFacet? {
+        val facets = _facets.mapNotNull { it.holderModule.androidFacet }.distinct()
+        val facet: AndroidFacet?
+        if (facets.size > 1) {
+            facet = ModuleChooserDialogHelper.showDialogForFacets(project, facets)
+            if (facet == null) {
+                return null
+            }
         } else {
-            facets[0]
+            facet = facets[0]
         }
+
+        return facet
     }
 
-    private fun showDeviceChooserDialog(facet: AndroidFacet, packageName: String): DeviceResult? {
+    private fun showDeviceChooserDialog(facet: AndroidFacet, packageName: String): DeviceResult {
         val chooser = DeviceChooserDialog(facet)
         chooser.show()
 
         if (chooser.exitCode != DialogWrapper.OK_EXIT_CODE) {
-            return null
+            return DeviceResult.Cancelled
         }
 
 
@@ -97,16 +80,21 @@ class DeviceResultFetcher constructor(
         }
 
         if (selectedDevices.isEmpty()) {
-            return null
+            return DeviceResult.Cancelled
         }
 
-        return DeviceResult(selectedDevices.asList(), facet, packageName)
+        return SuccessfulDeviceResult(selectedDevices.asList(), facet, packageName)
     }
 }
 
 
-data class DeviceResult(
-    val devices: List<IDevice>,
-    val facet: AndroidFacet,
-    val packageName: String
-)
+sealed class DeviceResult {
+    data class SuccessfulDeviceResult(
+        val devices: List<IDevice>,
+        val facet: AndroidFacet,
+        val packageName: String
+    ) : DeviceResult()
+
+    object Cancelled : DeviceResult()
+    object DeviceNotFound : DeviceResult()
+}

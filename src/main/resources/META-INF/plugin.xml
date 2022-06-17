@@ -30,6 +30,17 @@
 
 
     <change-notes><![CDATA[
+        <b>1.6.6</b>
+        <ul>
+            <li>BUGFIX: Compatibility with Android Studio 2022.1.1</li>
+        </ul>
+        <b>1.6.5</b>
+        <ul>
+            <li>BUGFIX: Compatibility with Android Studio 2021.2</li>
+            <li>BUGFIX: Stop spamming that no device is found when cancelling out of the module selection dialog</li>
+            <li>BUGFIX: Stop showing androidTest and unit tests modules in the module selection dialog</li>
+            <li>BUGFIX: Set minimum dimensions on the module selection dialog</li>
+        </ul>
         <b>1.6.4</b>
         <ul>
             <li>BUGFIX: Fix multiple device support on Android Studio 7.1+</li>
@@ -151,9 +162,10 @@
 
     <!-- Android Studio 7.1+ -->
     <!-- see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html -->
-    <idea-version since-build="211.7628"/>
+    <idea-version since-build="212.5712"/>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.androidstudio</depends>
     <depends>org.jetbrains.android</depends>
 
     <actions>
