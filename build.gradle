@@ -1,45 +1,98 @@
+import org.jetbrains.changelog.Changelog
+
 plugins {
-    id "org.jetbrains.kotlin.jvm" version "1.5.21"
-    id "org.jetbrains.intellij" version "1.6.0"
-    id "org.ajoberstar.reckon" version "0.13.0"
+    // Must match the Kotlin version bundled with the IDE
+    // https://plugins.jetbrains.com/docs/intellij/using-kotlin.html#kotlin-standard-library
+    // https://plugins.jetbrains.com/docs/intellij/android-studio-releases-list.html
+    id "org.jetbrains.kotlin.jvm" version "1.8.21"
+
+    // https://github.com/JetBrains/gradle-intellij-plugin
+    id "org.jetbrains.intellij" version "1.15.0"
+
+    // https://github.com/ajoberstar/reckon
+    id "org.ajoberstar.reckon" version "0.14.0"
+
+    // https://github.com/b3er/gradle-local-properties-plugin
+    id "com.github.b3er.local.properties" version "1.1"
+
+    // https://github.com/JetBrains/gradle-changelog-plugin
+    id "org.jetbrains.changelog" version "2.0.0"
+
 }
 
 repositories {
     mavenCentral()
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
-if (!hasProperty('StudioCompilePath')) {
-    throw new GradleException("No StudioCompilePath value was set, please create gradle.properties file")
-}
+group 'com.developerphil.intellij.plugin.adbidea'
+sourceCompatibility = 17
+targetCompatibility = 17
 
 intellij {
     pluginName = 'adb_idea_custom'
     updateSinceUntilBuild = false
-    localPath = project.hasProperty("StudioRunPath") ? StudioRunPath : StudioCompilePath
-    instrumentCode {
-        compilerVersion = "212.4746.92"
-    }
-    instrumentTestCode {
-        compilerVersion = "212.4746.92"
-    }
+    version = project.property("ideVersion")
+    type = "AI"
+    plugins = ['android']
 
+    patchPluginXml {
+        sinceBuild = project.property("sinceBuild")
+
+        // Extract the 5 most recent entries in CHANGELOG.md
+        changeNotes = provider {
+            def s = ""
+            changelog.getAll()
+                    .drop(1) // drop the [Unreleased] section
+                    .take(5) // last 5 changes
+                    .forEach { key, val ->
+                        s += changelog.renderItem(
+                                changelog
+                                        .get(key)
+                                        .withHeader(true)
+                                        .withEmptySections(false),
+                                Changelog.OutputType.HTML
+                        )
+                    }
+            s
+        }
+    }
 }
 
-group 'com.developerphil.intellij.plugin.adbidea'
+changelog {
+    repositoryUrl = "https://github.com/pbreault/adb-idea"
+    itemPrefix = "-"
+    keepUnreleasedSection = true
+    unreleasedTerm = "[Unreleased]"
+    groups.empty()
+    combinePreReleases = true
+}
+
+task printLastChanges() {
+    doLast {
+        def s = ""
+        changelog.getAll()
+                .drop(1) // drop the [Unreleased] section
+                .take(5) // last 5 changes
+                .forEach { key, val ->
+                    s += changelog.renderItem(
+                            changelog
+                                    .get(key)
+                                    .withHeader(false)
+                                    .withEmptySections(false),
+                            Changelog.OutputType.MARKDOWN
+                    )
+                }
+
+
+        println(s)
+    }
+}
 
 dependencies {
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.5.21'
     implementation 'org.jooq:joor-java-8:0.9.14'
-    compileOnly fileTree(dir: "$StudioCompilePath/plugins/android/lib", include: ['*.jar'])
-    compileOnly fileTree(dir: "$StudioCompilePath/lib", include: ['*.jar'])
 
     testImplementation 'junit:junit:4.13.2'
-    testImplementation fileTree(dir: "$StudioCompilePath/plugins/android/lib", include: ['*.jar'])
-    testImplementation fileTree(dir: "$StudioCompilePath/lib", include: ['*.jar'])
-    testImplementation "org.mockito:mockito-core:1.+"
+    testImplementation 'org.mockito:mockito-core:4.7.0'
     testImplementation 'com.google.truth:truth:1.1.3'
 }
 
@@ -48,15 +101,4 @@ reckon {
     snapshotFromProp()
 }
 
-task(verifySetup) {
-    doLast {
-        def ideaJar = "$StudioCompilePath/lib/idea.jar"
-        if (!file(ideaJar).exists()) {
-            throw new GradleException("$ideaJar not found, set StudioCompilePath in gradle.properties")
-        }
-    }
-}
-
-
-compileJava.dependsOn verifySetup
 buildSearchableOptions.enabled = false

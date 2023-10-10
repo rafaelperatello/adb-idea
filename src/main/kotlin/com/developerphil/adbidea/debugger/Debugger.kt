@@ -2,16 +2,16 @@ package com.developerphil.adbidea.debugger
 
 import com.android.ddmlib.Client
 import com.android.ddmlib.IDevice
-import com.android.tools.idea.run.AndroidProcessHandler
-import com.android.tools.idea.run.editor.AndroidDebugger
+import com.android.tools.idea.execution.common.processhandler.AndroidProcessHandler
+import com.android.tools.idea.execution.common.debug.AndroidDebugger
 import com.developerphil.adbidea.compatibility.BackwardCompatibleGetter
-import com.developerphil.adbidea.invokeLater
 import com.developerphil.adbidea.on
 import com.developerphil.adbidea.waitUntil
 import com.intellij.execution.ExecutionManager
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.process.ProcessOutputTypes
 import com.intellij.openapi.project.Project
+import com.intellij.util.concurrency.AppExecutorUtil
 import org.joor.Reflect.on
 
 class Debugger(private val project: Project, private val device: IDevice, private val packageName: String) {
@@ -24,7 +24,9 @@ class Debugger(private val project: Project, private val device: IDevice, privat
         }
         for (androidDebugger in AndroidDebugger.EP_NAME.extensions) {
             if (androidDebugger.supportsProject(project)) {
-                invokeLater { closeOldSessionAndRun(androidDebugger, device.getClient(packageName) ?: client!!) }
+                AppExecutorUtil.getAppExecutorService().execute {
+                    closeOldSessionAndRun(androidDebugger, device.getClient(packageName) ?: client!!)
+                }
                 break
             }
         }
@@ -32,7 +34,7 @@ class Debugger(private val project: Project, private val device: IDevice, privat
 
     private fun closeOldSessionAndRun(androidDebugger: AndroidDebugger<*>, client: Client) {
         terminateRunSessions(client)
-        AttachToClient(androidDebugger, project, client).get()
+        androidDebugger.attachToClient(project, client, null)
     }
 
     // Disconnect any active run sessions to the same client
@@ -78,18 +80,6 @@ class TerminateRunSession(
     }
 
     private fun pidFrom(client: Client) = on(client).call("getClientData").call("getPid").get<Int>()!!
-}
-
-class AttachToClient(private val androidDebugger: AndroidDebugger<*>,
-                     private val project: Project,
-                     private val client: Client) : BackwardCompatibleGetter<Unit>() {
-    override fun getCurrentImplementation() {
-        androidDebugger.attachToClient(project, client, null)
-    }
-
-    override fun getPreviousImplementation() {
-        on(androidDebugger).call("attachToClient", project, client, null)
-    }
 }
 
 private class RunningProcessesGetter(
