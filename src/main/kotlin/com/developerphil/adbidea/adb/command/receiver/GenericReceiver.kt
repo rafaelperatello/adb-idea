@@ -1,7 +1,6 @@
 package com.developerphil.adbidea.adb.command.receiver
 
 import com.android.ddmlib.MultiLineReceiver
-import java.util.*
 import java.util.regex.Pattern
 
 class GenericReceiver : MultiLineReceiver() {
@@ -29,6 +28,13 @@ class GenericReceiver : MultiLineReceiver() {
 
     override fun isCancelled() = false
 
+    fun hasOutput(): Boolean {
+        return adbOutputLines.size > 0
+    }
+}
+
+fun GenericReceiver.isNoSuchFileError(): Boolean {
+    return hasOutput() && adbOutputLines[0].contains("No such file", true)
 }
 
 private const val SUCCESS_OUTPUT = "Success" //$NON-NLS-1$

@@ -5,6 +5,7 @@ import com.android.ddmlib.IDevice
 import com.android.ddmlib.SyncService.ISyncProgressMonitor
 import com.developerphil.adbidea.adb.AdbUtil.isAppInstalled
 import com.developerphil.adbidea.adb.command.receiver.GenericReceiver
+import com.developerphil.adbidea.adb.command.receiver.isNoSuchFileError
 import com.developerphil.adbidea.ui.NotificationHelper.error
 import com.developerphil.adbidea.ui.NotificationHelper.info
 import com.intellij.openapi.application.ApplicationManager
@@ -20,20 +21,52 @@ import java.util.*
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
-class CopyDatabaseCommand : Command, ISyncProgressMonitor, FileChooserConsumer {
+class CopyDatabaseCommand : Command, SyncProgressMonitor {
     private var destination: String? = null
     private val pullLatch = CountDownLatch(1)
 
     override fun run(project: Project, device: IDevice, facet: AndroidFacet, packageName: String): Boolean {
         try {
             if (isAppInstalled(device, packageName)) {
-                device.executeShellCommand("rm -r /sdcard/databases", GenericReceiver(), 15L, TimeUnit.SECONDS)
+                device.executeShellCommand(
+                    "rm -r /sdcard/databases",
+                    GenericReceiver(),
+                    15L,
+                    TimeUnit.SECONDS
+                )
 
+                // Try with run-as
                 val copyReceiver = GenericReceiver()
-                device.executeShellCommand("run-as $packageName cp -R databases /sdcard/", copyReceiver, 15L, TimeUnit.SECONDS)
-                if (copyReceiver.adbOutputLines.size > 0 && copyReceiver.adbOutputLines[0].contains("No such file", true)) {
-                    error("No database found")
-                    return true
+                device.executeShellCommand(
+                    "run-as $packageName cp -R databases /sdcard",
+                    copyReceiver,
+                    15L,
+                    TimeUnit.SECONDS
+                )
+                if (copyReceiver.hasOutput()) {
+                    if (copyReceiver.isNoSuchFileError()) {
+                        error("No database found")
+                        return true
+                    } else {
+
+                        // Fall back to using the absolute path
+                        val fallbackCopyReceiver = GenericReceiver()
+                        device.executeShellCommand(
+                            "cp -R /data/data/$packageName/databases /sdcard",
+                            fallbackCopyReceiver,
+                            15L,
+                            TimeUnit.SECONDS
+                        )
+
+                        if (fallbackCopyReceiver.hasOutput()) {
+                            if (fallbackCopyReceiver.isNoSuchFileError()) {
+                                error("No database found")
+                                return true
+                            } else {
+                                error("Not mapped: ${copyReceiver.adbOutputLines.first()}")
+                            }
+                        }
+                    }
                 }
 
                 info(String.format("<b>%s</b> database copied to sdcard", packageName))
@@ -42,7 +75,9 @@ class CopyDatabaseCommand : Command, ISyncProgressMonitor, FileChooserConsumer {
                 val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
                 val stamp = format.format(Date())
                 val destination = "$selectedDestination/$stamp"
-                val result = File(destination).mkdir()
+
+                File(destination).mkdir()
+
                 val entry = arrayOf(getEntry("sdcard/databases", device))
 
                 device.syncService.pull(entry, destination, this)
@@ -65,23 +100,18 @@ class CopyDatabaseCommand : Command, ISyncProgressMonitor, FileChooserConsumer {
         return false
     }
 
-    override fun start(i: Int) {}
     override fun stop() = pullLatch.countDown()
-    override fun isCanceled(): Boolean = false
-    override fun startSubTask(s: String) {}
-    override fun advance(i: Int) {}
-    override fun cancelled() {}
-    override fun consume(virtualFiles: List<VirtualFile?>) {}
 
     private fun getDestination(project: Project): String? {
         val chooserLatch = CountDownLatch(1)
         val fileDescriptor = FileChooserDescriptor(
-                false,
-                true,
-                false,
-                false,
-                false,
-                false)
+            false,
+            true,
+            false,
+            false,
+            false,
+            false
+        )
         ApplicationManager.getApplication().invokeLater {
             FileChooser.chooseFiles(fileDescriptor, project, project.workspaceFile, object : FileChooserConsumer {
                 override fun cancelled() {
@@ -111,4 +141,12 @@ class CopyDatabaseCommand : Command, ISyncProgressMonitor, FileChooserConsumer {
         }
         return entry
     }
+}
+
+interface SyncProgressMonitor : ISyncProgressMonitor {
+    override fun advance(work: Int) {}
+    override fun isCanceled(): Boolean = false
+    override fun start(totalWork: Int) {}
+    override fun startSubTask(name: String?) {}
+    override fun stop() {}
 }

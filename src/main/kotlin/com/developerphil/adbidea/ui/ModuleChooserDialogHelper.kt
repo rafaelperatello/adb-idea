@@ -48,7 +48,7 @@ object ModuleChooserDialogHelper {
             size.height = size.height.coerceAtLeast(tableSize.height + size.height - table.parent.height)
         }
         size.width = 1000.coerceAtMost(600.coerceAtLeast(size.width))
-        size.height = 800.coerceAtMost(size.height)
+        size.height = 800.coerceAtMost(250.coerceAtLeast(size.height))
         return size
     }
 
