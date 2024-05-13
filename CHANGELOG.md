@@ -2,6 +2,18 @@
 
 ## [[Unreleased]]
 
+## [1.6.15] - 2024-03-17
+- Compatibility with Android Studio Jellyfish
+
+## [1.6.14] - 2024-03-17
+- Fix [#162](https://github.com/pbreault/adb-idea/issues/162) : Bug (v1.6.11): for a project with multiple modules, it always asks on which to perform any operation 
+
+## [1.6.13] - 2023-12-05
+- Compatibility with AS Iguana Canary 16
+
+## [1.6.12] - 2023-07-30
+- Compatibility with AS Giraffe
+
 ## [1.6.11] - 2023-06-11
 - Compatibility with AS Hedgehog
 
@@ -190,7 +202,11 @@
 - Command to clear data
 - Command to clear data and restart
 
-[Unreleased]: https://github.com/pbreault/adb-idea/compare/v1.7.0-SNAPSHOT...HEAD
+[Unreleased]: https://github.com/pbreault/adb-idea/compare/1.6.15...HEAD
+[1.6.14]: https://github.com/pbreault/adb-idea/compare/1.6.14...1.6.15
+[1.6.14]: https://github.com/pbreault/adb-idea/compare/1.6.13...1.6.14
+[1.6.13]: https://github.com/pbreault/adb-idea/compare/1.6.12...1.6.13
+[1.6.12]: https://github.com/pbreault/adb-idea/compare/1.6.11...1.6.12
 [1.6.11]: https://github.com/pbreault/adb-idea/compare/1.6.10...1.6.11
 [1.6.10]: https://github.com/pbreault/adb-idea/compare/1.6.9...1.6.10
 [1.6.9]: https://github.com/pbreault/adb-idea/compare/1.6.8...1.6.9

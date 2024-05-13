@@ -4,10 +4,10 @@ plugins {
     // Must match the Kotlin version bundled with the IDE
     // https://plugins.jetbrains.com/docs/intellij/using-kotlin.html#kotlin-standard-library
     // https://plugins.jetbrains.com/docs/intellij/android-studio-releases-list.html
-    id "org.jetbrains.kotlin.jvm" version "1.8.21"
+    id "org.jetbrains.kotlin.jvm" version "1.8.0"
 
     // https://github.com/JetBrains/gradle-intellij-plugin
-    id "org.jetbrains.intellij" version "1.15.0"
+    id "org.jetbrains.intellij" version "1.16.1"
 
     // https://github.com/ajoberstar/reckon
     id "org.ajoberstar.reckon" version "0.14.0"
@@ -31,9 +31,20 @@ targetCompatibility = 17
 intellij {
     pluginName = 'adb_idea_custom'
     updateSinceUntilBuild = false
-    version = project.property("ideVersion")
     type = "AI"
     plugins = ['android']
+
+    // Set this path to point to a locally installed version of android studio.
+    // see gradle.properties for more info
+    if (project.hasProperty("localIdeOverride")) {
+        localPath = localIdeOverride
+    } else {
+        version = project.property("ideVersion")
+    }
+
+    instrumentCode {
+        compilerVersion = "231.9225.16"
+    }
 
     patchPluginXml {
         sinceBuild = project.property("sinceBuild")
@@ -55,6 +66,10 @@ intellij {
                     }
             s
         }
+    }
+
+    runIde {
+        jvmArgs = ['-Xmx4096m', '-XX:+UnlockDiagnosticVMOptions']
     }
 }
 
