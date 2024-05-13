@@ -1,5 +1,7 @@
-ADB Idea
+ADB Idea Custom
 ========
+**Forked from [ADB Idea](https://github.com/pbreault/adb-idea)**
+
 
 A plugin for Android Studio and Intellij IDEA that speeds up your day to day android development.
 
@@ -11,6 +13,8 @@ The following commands are provided:
 * Restart App
 * Clear App Data
 * Clear App Data and Restart
+* **Copy database**
+* **Delete database**
 
 Usage
 =====
