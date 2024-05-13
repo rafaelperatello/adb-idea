@@ -1,8 +1,5 @@
 package com.developerphil.adbidea.adb.command
 
-import com.android.ddmlib.FileListingService
-import com.android.ddmlib.IDevice
-import com.android.ddmlib.SyncService.ISyncProgressMonitor
 import com.developerphil.adbidea.adb.AdbUtil.isAppInstalled
 import com.developerphil.adbidea.adb.command.receiver.GenericReceiver
 import com.developerphil.adbidea.adb.command.receiver.isNoSuchFileError
@@ -14,62 +11,44 @@ import com.intellij.openapi.fileChooser.FileChooser.FileChooserConsumer
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import org.jetbrains.android.facet.AndroidFacet
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
-class CopyDatabaseCommand : Command, SyncProgressMonitor {
-    private var destination: String? = null
-    private val pullLatch = CountDownLatch(1)
+/**
+ * Ref https://medium.com/@liwp.stephen/how-does-android-studio-device-file-explorer-works-62685330e8c8
+ */
+class CopyDatabaseCommand : Command {
 
-    override fun run(project: Project, device: IDevice, facet: AndroidFacet, packageName: String): Boolean {
+    private var destination: String? = null
+
+    override fun run(context: CommandContext): Boolean = with(context) {
         try {
             if (isAppInstalled(device, packageName)) {
-                device.executeShellCommand(
-                    "rm -r /sdcard/databases",
-                    GenericReceiver(),
-                    15L,
-                    TimeUnit.SECONDS
-                )
 
-                // Try with run-as
-                val copyReceiver = GenericReceiver()
-                device.executeShellCommand(
-                    "run-as $packageName cp -R databases /sdcard",
-                    copyReceiver,
-                    15L,
-                    TimeUnit.SECONDS
-                )
-                if (copyReceiver.hasOutput()) {
-                    if (copyReceiver.isNoSuchFileError()) {
-                        error("No database found")
-                        return true
-                    } else {
-
-                        // Fall back to using the absolute path
-                        val fallbackCopyReceiver = GenericReceiver()
-                        device.executeShellCommand(
-                            "cp -R /data/data/$packageName/databases /sdcard",
-                            fallbackCopyReceiver,
-                            15L,
-                            TimeUnit.SECONDS
-                        )
-
-                        if (fallbackCopyReceiver.hasOutput()) {
-                            if (fallbackCopyReceiver.isNoSuchFileError()) {
-                                error("No database found")
-                                return true
-                            } else {
-                                error("Not mapped: ${copyReceiver.adbOutputLines.first()}")
-                            }
-                        }
-                    }
+                // Check if the database folder exists
+                val listReceiver = GenericReceiver()
+                device.executeShellCommand("run-as $packageName ls databases", listReceiver, 15L, TimeUnit.SECONDS)
+                if (listReceiver.hasOutput() && listReceiver.adbOutputLines[0].contains("No such file", true)) {
+                    kotlin.error("No databases found")
                 }
 
-                info(String.format("<b>%s</b> database copied to sdcard", packageName))
+                val deviceDestinationBasePath = "/data/local/tmp/$packageName"
+                val deviceDestinationDatabasePath = "$deviceDestinationBasePath/databases"
+
+                // Create destination folder
+                createDestinationFolder(deviceDestinationBasePath)
+
+                // Cleanup in case the folder already exists
+                cleanupPreviousFiles(deviceDestinationDatabasePath)
+
+                val result = tryCopyDatabase(deviceDestinationDatabasePath)
+                if (!result) {
+                    // Failed to copy database
+                    return true
+                }
 
                 val selectedDestination = getDestination(project) ?: return true
                 val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
@@ -78,16 +57,21 @@ class CopyDatabaseCommand : Command, SyncProgressMonitor {
 
                 File(destination).mkdir()
 
-                val entry = arrayOf(getEntry("sdcard/databases", device))
+                // Process file names
+                val filteredResult = listReceiver.adbOutputLines
+                    .flatMap { it.split(" ") }
+                    .flatMap { it.split("\n") }
+                    .filter { it.isNotBlank() }
+                    .sorted()
 
-                device.syncService.pull(entry, destination, this)
-
-                val flag = pullLatch.await(10, TimeUnit.SECONDS)
-                if (!flag) {
-                    throw RuntimeException("Failed to download database")
+                filteredResult.forEach {
+                    device.pullFile(
+                        "$deviceDestinationDatabasePath/$it",
+                        "$destination/$it"
+                    )
                 }
 
-                info("Database copied to: $destination")
+                info("Databases copied to: <b>$destination</b>")
                 return true
             } else {
                 error(String.format("<b>%s</b> is not installed on %s", packageName, device.name))
@@ -99,8 +83,6 @@ class CopyDatabaseCommand : Command, SyncProgressMonitor {
         }
         return false
     }
-
-    override fun stop() = pullLatch.countDown()
 
     private fun getDestination(project: Project): String? {
         val chooserLatch = CountDownLatch(1)
@@ -128,25 +110,62 @@ class CopyDatabaseCommand : Command, SyncProgressMonitor {
         return destination
     }
 
-    private fun getEntry(remotePath: String, device: IDevice): FileListingService.FileEntry? {
-        val listingService = device.fileListingService
-        var entry = listingService.root
-        val segments = remotePath.split("/").toTypedArray()
-        for (segment in segments) {
-            listingService.getChildren(entry, false, null)
-            entry = entry!!.findChild(segment)
-            if (entry == null) {
-                throw Exception("File not found")
+    private fun CommandContext.createDestinationFolder(deviceDestinationBasePath: String) {
+        val mkDirReceiver = GenericReceiver()
+        device.executeShellCommand(
+            "mkdir $deviceDestinationBasePath",
+            mkDirReceiver,
+            15L,
+            TimeUnit.SECONDS
+        )
+    }
+
+    private fun CommandContext.cleanupPreviousFiles(deviceDestinationDatabasePath: String) {
+        val deleteReceiver = GenericReceiver()
+        device.executeShellCommand(
+            "rm -r $deviceDestinationDatabasePath",
+            deleteReceiver,
+            15L,
+            TimeUnit.SECONDS
+        )
+    }
+
+    private fun CommandContext.tryCopyDatabase(deviceDestinationDatabasePath: String): Boolean {
+        // Try with run-as
+        val copyReceiver = GenericReceiver()
+        device.executeShellCommand(
+            "run-as $packageName cp -R databases $deviceDestinationDatabasePath",
+            copyReceiver,
+            15L,
+            TimeUnit.SECONDS
+        )
+        if (copyReceiver.hasOutput()) {
+            if (copyReceiver.isNoSuchFileError()) {
+                error("No database found")
+                return false
+            } else {
+
+                // Fall back to using the absolute path
+                val fallbackCopyReceiver = GenericReceiver()
+                device.executeShellCommand(
+                    "cp -R /data/data/$packageName/databases $deviceDestinationDatabasePath",
+                    fallbackCopyReceiver,
+                    15L,
+                    TimeUnit.SECONDS
+                )
+
+                if (fallbackCopyReceiver.hasOutput()) {
+                    if (fallbackCopyReceiver.isNoSuchFileError()) {
+                        error("No database found")
+                        return false
+                    } else {
+                        error("Error not mapped: ${copyReceiver.adbOutputLines.first()} | ${fallbackCopyReceiver.adbOutputLines.first()}")
+                        return false
+                    }
+                }
             }
         }
-        return entry
-    }
-}
 
-interface SyncProgressMonitor : ISyncProgressMonitor {
-    override fun advance(work: Int) {}
-    override fun isCanceled(): Boolean = false
-    override fun start(totalWork: Int) {}
-    override fun startSubTask(name: String?) {}
-    override fun stop() {}
+        return true
+    }
 }

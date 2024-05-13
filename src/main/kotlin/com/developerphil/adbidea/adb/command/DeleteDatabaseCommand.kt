@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit
 
 class DeleteDatabaseCommand : Command {
 
-    override fun run(project: Project, device: IDevice, facet: AndroidFacet, packageName: String): Boolean {
+    override fun run(context: CommandContext): Boolean = with(context)  {
         try {
             if (isAppInstalled(device, packageName)) {
                 val listReceiver = GenericReceiver()
